@@ -12,6 +12,12 @@ namespace NetCoreForce.Client
     public static class UriFormatter
     {
         /// <summary>
+        /// SF Base URI Path
+        /// </summary>
+        // trailing slash required in services/data/ so that URI combinations work as expected
+        public static string BaseUriPath() => "services/data/";
+
+        /// <summary>
         /// SF Base URI
         /// </summary>
         /// <param name="instanceUrl"></param>
@@ -20,10 +26,13 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
 
             // e.g. https://na99.salesforce.com/services/data
-
-            // trailing slash required in services/data/ so that URI combinations work as expected
-            return new Uri(new Uri(instanceUrl), "services/data/");
+            return new Uri(new Uri(instanceUrl), BaseUriPath());
         }
+
+        /// <summary>
+        /// Versions Path
+        /// </summary>
+        public static string VersionsPath() => "services/data";
 
         /// <summary>
         /// Versions
@@ -33,11 +42,7 @@ namespace NetCoreForce.Client
         {
             if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
 
-            // format: /
-
-            Uri uri = new Uri(new Uri(instanceUrl), "services/data");
-
-            return uri;
+            return new Uri(new Uri(instanceUrl), VersionsPath());
         }
 
         //TODO: Resources By Version https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_discoveryresource.htm
@@ -60,6 +65,18 @@ namespace NetCoreForce.Client
         //batch/tree reqs may need relative url parsers
 
         /// <summary>
+        /// Limits Resource Path
+        /// <para>Use the Limits resource to list limits information for your organization.</para>
+        /// <para>format: /vXX.X/limits/</para>
+        /// </summary>
+        public static string LimitsResourcePath(string apiVersion)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+
+            return $"{apiVersion}/limits";
+        }
+
+        /// <summary>
         /// Limits Resource
         /// <para>Use the Limits resource to list limits information for your organization.</para>
         /// <para>format: /vXX.X/limits/</para>
@@ -68,7 +85,20 @@ namespace NetCoreForce.Client
         {
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
-            return new Uri($"{apiVersion}/limits", UriKind.Relative);
+            return new Uri(LimitsResourcePath(apiVersion), UriKind.Relative);
+        }
+
+        /// <summary>
+        /// Describe Global Path
+        /// Use the Describe Global resource to list the objects available in your org and available to the logged-in user.
+        /// This resource also returns the org encoding, as well as maximum batch size permitted in queries.
+        /// </summary>
+        public static string DescribeGlobalPath(string apiVersion)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+
+            //format: /vXX.X/sobjects/
+            return $"{apiVersion}/sobjects";
         }
 
         /// <summary>
@@ -82,10 +112,20 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
             //format: /vXX.X/sobjects/
+            return new Uri(BaseUri(instanceUrl), DescribeGlobalPath(apiVersion));
+        }
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects");
+        /// <summary>
+        /// SObject Basic Information Path
+        /// Describes the individual metadata for the specified object. Can also be used to create a new record for a given object.
+        /// </summary>
+        public static string SObjectBasicInformationPath(string apiVersion, string sObjectName)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
 
-            return uri;
+            //format: /vXX.X/sobjects/SObjectName/
+            return $"{apiVersion}/sobjects/{sObjectName}";
         }
 
         /// <summary>
@@ -94,15 +134,25 @@ namespace NetCoreForce.Client
         /// </summary>
         public static Uri SObjectBasicInformation(string instanceUrl, string apiVersion, string sObjectName)
         {
-            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
             if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
             //format: /vXX.X/sobjects/SObjectName/
+            return new Uri(BaseUri(instanceUrl), SObjectBasicInformationPath(apiVersion, sObjectName));
+        }
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}");
+        /// <summary>
+        /// SObject Describe Path
+        /// Completely describes the individual metadata at all levels for the specified object.
+        /// </summary>
+        public static string SObjectDescribePath(string apiVersion, string sObjectName)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
 
-            return uri;
+            //format: /vXX.X/sobjects/SObjectName/describe/
+            return $"{apiVersion}/sobjects/{sObjectName}/describe";
         }
 
         /// <summary>
@@ -111,15 +161,12 @@ namespace NetCoreForce.Client
         /// </summary>
         public static Uri SObjectDescribe(string instanceUrl, string apiVersion, string sObjectName)
         {
-            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
             if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
             //format: /vXX.X/sobjects/SObjectName/describe/
-
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}/describe");
-
-            return uri;
+            return new Uri(BaseUri(instanceUrl), SObjectDescribePath(apiVersion, sObjectName));
         }
 
         //TODO: SObject Get Deleted
@@ -127,6 +174,37 @@ namespace NetCoreForce.Client
         //TODO: SObject Get Updated
 
         //TODO: SObject Named Layouts
+
+        /// <summary>
+        /// SObject Rows Resource Path
+        /// Used for: Update, Delete, Field values
+        /// </summary>
+        /// <param name="apiVersion">SFDC API version, e.g. "v57.0"</param>
+        /// <param name="sObjectName">SObject name, e.g. "Account"</param>
+        /// <param name="objectId">SObject ID</param>
+        /// <param name="fields">(optional) "fields" parameter, a list of object fields for GET requests</param>
+        /// <returns></returns>
+        public static string SObjectRowsPath(string apiVersion, string sObjectName, string objectId, List<string> fields = null)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
+            if (string.IsNullOrEmpty(objectId)) throw new ArgumentNullException("objectId");
+
+            //https://developer.salesforce.com/docs/atlas.en-us.api_rest.meta/api_rest/resources_sobject_retrieve.htm
+
+            // format: /vXX.X/sobjects/SObjectName/id/
+            // example with field parameter: services/data/v20.0/sobjects/Account/001D000000INjVe?fields=AccountNumber,BillingPostalCode            
+
+            string path = $"{apiVersion}/sobjects/{sObjectName}/{objectId}";
+
+            if (fields != null && fields.Count > 0)
+            {
+                string fieldList = string.Join(",", fields);
+                path = QueryHelpers.AddQueryString(path, "fields", fieldList);
+            }
+
+            return path;
+        }
 
         /// <summary>
         /// SObject Rows Resource
@@ -150,15 +228,22 @@ namespace NetCoreForce.Client
             // format: /vXX.X/sobjects/SObjectName/id/
             // example with field parameter: services/data/v20.0/sobjects/Account/001D000000INjVe?fields=AccountNumber,BillingPostalCode            
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}/{objectId}");
+            //Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}/{objectId}");
+            return new Uri(BaseUri(instanceUrl), SObjectRowsPath(apiVersion, sObjectName, objectId, fields));
+        }
 
-            if (fields != null && fields.Count > 0)
-            {
-                string fieldList = string.Join(",", fields);
-                uri = new Uri(QueryHelpers.AddQueryString(uri.ToString(), "fields", fieldList));
-            }
+        /// <summary>
+        /// SObject Composite Path
+        /// Used for: Update multiple
+        /// </summary>
+        /// <param name="apiVersion">SFDC API version, e.g. "v57.0"</param>
+        /// <returns></returns>
+        public static string SObjectsCompositePath(string apiVersion)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
-            return uri;
+            //format: /vXX.X/composite/sobjects
+            return $"{apiVersion}/composite/sobjects";
         }
 
         /// <summary>
@@ -174,10 +259,23 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
             //format: /vXX.X/composite/sobjects
+            return new Uri(BaseUri(instanceUrl), SObjectsCompositePath(apiVersion));
+        }
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/composite/sobjects");
+        /// <summary>
+        /// sObject Tree Path
+        /// Used for: Create multiple
+        /// </summary>
+        /// <param name="apiVersion">SFDC API version, e.g. "v57.0"</param>
+        /// <param name="sObjectName">sObject name, e.g. "Account"</param>
+        /// <returns></returns>
+        public static string SObjectTreePath(string apiVersion, string sObjectName)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
 
-            return uri;
+            //format: /vXX.X/composite/tree/sObjectName
+            return $"{apiVersion}/composite/tree/{sObjectName}";
         }
 
         /// <summary>
@@ -195,10 +293,31 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
 
             //format: /vXX.X/composite/tree/sObjectName
+            return new Uri(BaseUri(instanceUrl), SObjectTreePath(apiVersion, sObjectName));
+        }
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/composite/tree/{sObjectName}");
+        /// <summary>
+        /// SObject Rows by External ID Path
+        /// Used for:
+        /// Retrieve Records Using sObject Rows by External ID
+        /// Upsert Records Using sObject Rows by External ID
+        /// Delete Records Using sObject Rows by External ID
+        /// Return Headers Using sObject Rows by External ID 
+        /// </summary>
+        /// <param name="apiVersion">SFDC API version, e.g. "v57.0"</param>
+        /// <param name="sObjectName">sObject name, e.g. "Account"</param>
+        /// <param name="fieldName"></param>
+        /// <param name="fieldValue"></param>
+        /// <returns></returns>
+        public static string SObjectRowsByExternalIdPath(string apiVersion, string sObjectName, string fieldName, string fieldValue)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
+            if (string.IsNullOrEmpty(fieldName)) throw new ArgumentNullException("fieldName");
+            if (string.IsNullOrEmpty(fieldName)) throw new ArgumentNullException("fieldValue");
 
-            return uri;
+            //format: /vXX.X/sobjects/SObjectName/fieldName/fieldValue
+            return $"{apiVersion}/sobjects/{sObjectName}/{fieldName}/{fieldValue}";
         }
 
         /// <summary>
@@ -220,15 +339,28 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
             if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
-            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
             if (string.IsNullOrEmpty(fieldName)) throw new ArgumentNullException("fieldName");
             if (string.IsNullOrEmpty(fieldName)) throw new ArgumentNullException("fieldValue");
 
             //format: /vXX.X/sobjects/SObjectName/fieldName/fieldValue
+            return new Uri(BaseUri(instanceUrl), SObjectRowsByExternalIdPath(apiVersion, sObjectName, fieldName, fieldValue));
+        }
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}/{fieldName}/{fieldValue}");
+        /// <summary>
+        /// SObjectCollections Upsert Path
+        /// </summary>
+        /// <param name="apiVersion">SFDC API version, e.g. "v57.0"</param>
+        /// <param name="sObjectName">sObject name, e.g. "Account"</param>
+        /// <param name="fieldName"></param>
+        /// <returns></returns>
+        public static string SObjectCollectionsUpsertPath(string apiVersion, string sObjectName, string fieldName)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
+            if (string.IsNullOrEmpty(fieldName)) throw new ArgumentNullException("fieldName");
 
-            return uri;
+            //format: /vXX.X/sobjects/SObjectName/fieldName/fieldValue
+            return $"{apiVersion}/sobjects/{sObjectName}/{fieldName}";
         }
 
         /// <summary>
@@ -248,10 +380,7 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(fieldName)) throw new ArgumentNullException("fieldName");
 
             //format: /vXX.X/sobjects/SObjectName/fieldName/fieldValue
-
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}/{fieldName}");
-
-            return uri;
+            return new Uri(BaseUri(instanceUrl), SObjectCollectionsUpsertPath(apiVersion, sObjectName, fieldName));
         }
 
         //SObject Relationships Resource
@@ -260,7 +389,26 @@ namespace NetCoreForce.Client
         ///format: vXX.X/sobjects/SObject/id/relationship field name
 
         /// <summary>
-        /// SObject Rows
+        /// SObject Blob Path
+        /// </summary>
+        public static string SObjectBlobRetrievePath(string apiVersion, string sObjectName, string objectId, string blobField = "body")
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(sObjectName)) throw new ArgumentNullException("sObjectName");
+            if (string.IsNullOrEmpty(objectId)) throw new ArgumentNullException("objectId");
+            if (string.IsNullOrEmpty(blobField)) throw new ArgumentNullException("blobField");
+
+            //format: /vXX.X/sobjects/SObjectName/id/
+
+            // https://yourInstance.salesforce.com/services/data/v20.0/sobjects/Attachment/001D000000INjVe/body
+            // https://yourInstance.salesforce.com/services/data/v20.0/sobjects/Document/015D0000000NdJOIA0/body
+
+            return $"{apiVersion}/sobjects/{sObjectName}/{objectId}/{blobField}";
+        }
+
+
+        /// <summary>
+        /// SObject Blob
         /// </summary>
         public static Uri SObjectBlobRetrieve(string instanceUrl, string apiVersion, string sObjectName, string objectId, string blobField = "body")
         {
@@ -275,28 +423,51 @@ namespace NetCoreForce.Client
             // https://yourInstance.salesforce.com/services/data/v20.0/sobjects/Attachment/001D000000INjVe/body
             // https://yourInstance.salesforce.com/services/data/v20.0/sobjects/Document/015D0000000NdJOIA0/body
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/sobjects/{sObjectName}/{objectId}/{blobField}");
-
-            return uri;
-        }        
+            return new Uri(BaseUri(instanceUrl), SObjectBlobRetrievePath(apiVersion, sObjectName, objectId, blobField));
+        }
 
         /// <summary>
-        /// SOQL Query
+        /// SOQL Query Path
         /// </summary>
-        public static Uri Query(string instanceUrl, string apiVersion, string query, bool queryAll = false)
+        public static string QueryPath(string apiVersion, string query, bool queryAll = false)
         {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(query)) throw new ArgumentNullException("query");
+
             string queryType = "query";
             if (queryAll)
             {
                 queryType = "queryAll";
             }
 
-            //Uri uri = new Uri(new Uri(instanceUrl), string.Format("/services/data/{0}/{1}/?q={2}", apiVersion, queryType, query));
+            //string path = string.Format("/services/data/{0}/{1}/?q={2}", apiVersion, queryType, query);
 
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/{queryType}");
-            string queryUri = QueryHelpers.AddQueryString(uri.ToString(), "q", query);
+            string path = $"{apiVersion}/{queryType}";
+            return QueryHelpers.AddQueryString(path, "q", query);
+        }
 
-            return new Uri(queryUri);
+        /// <summary>
+        /// SOQL Query
+        /// </summary>
+        public static Uri Query(string instanceUrl, string apiVersion, string query, bool queryAll = false)
+        {
+            if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(query)) throw new ArgumentNullException("query");
+
+            return new Uri(BaseUri(instanceUrl), QueryPath(apiVersion, query, queryAll));
+        }
+
+        /// <summary>
+        /// Search Resource Path, for SOSL searches
+        /// </summary>
+        public static string SearchPath(string apiVersion, string query)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(query)) throw new ArgumentNullException("query");
+
+            string path = $"{apiVersion}/search";
+            return QueryHelpers.AddQueryString(path, "q", query);
         }
 
         /// <summary>
@@ -304,10 +475,23 @@ namespace NetCoreForce.Client
         /// </summary>
         public static Uri Search(string instanceUrl, string apiVersion, string query)
         {
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/search");
-            string searchUri = QueryHelpers.AddQueryString(uri.ToString(), "q", query);
+            if (string.IsNullOrEmpty(instanceUrl)) throw new ArgumentNullException("instanceUrl");
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+            if (string.IsNullOrEmpty(query)) throw new ArgumentNullException("query");
 
-            return new Uri(searchUri);
+            return new Uri(BaseUri(instanceUrl), SearchPath(apiVersion, query));
+        }
+
+        /// <summary>
+        /// Batch Resource Path
+        /// </summary>
+        /// <param name="apiVersion"></param>
+        public static string BatchPath(string apiVersion)
+        {
+            if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
+
+            //format: /vXX.X/composite/batch
+            return $"{apiVersion}/composite/batch";
         }
 
         /// <summary>
@@ -321,10 +505,7 @@ namespace NetCoreForce.Client
             if (string.IsNullOrEmpty(apiVersion)) throw new ArgumentNullException("apiVersion");
 
             //format: /vXX.X/composite/batch
-
-            Uri uri = new Uri(BaseUri(instanceUrl), $"{apiVersion}/composite/batch");
-
-            return uri;
+            return new Uri(BaseUri(instanceUrl), BatchPath(apiVersion));
         }
 
         /// <summary>
